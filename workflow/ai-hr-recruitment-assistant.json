@@ -1,0 +1,1265 @@
+{
+  "name": "AI HR Recruitment Assistant",
+  "nodes": [
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1418cb21-bae6-4ada-90eb-676ef33755a3",
+              "name": "job_code",
+              "type": "string",
+              "value": "={{ $json['hdn-job-code'] }}"
+            },
+            {
+              "id": "7c1d2a10-5b1e-4f3a-9a52-0a1b2c3d4e5f",
+              "name": "job_title",
+              "type": "string",
+              "value": "={{ ({ \n'job-code-001': 'AI Automation Engineer', 'job-code-002': 'Data Analyst', \n'job-code-003': 'Data Scientist' })[$json['hdn-job-code']] || 'the open position' }}"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "44451f04-efc1-42ab-a3e2-05f67590c0ea",
+      "name": "Capture Job Code",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        224,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "inputDataFieldName": "Resume",
+        "name": "={{ $json[\"hdn-job-code\"] }}-{{ $json[\"First Name\"] }}-{{ $json[\"Last Name\"] }}",
+        "driveId": {
+          "__rl": true,
+          "value": "My Drive",
+          "mode": "list",
+          "cachedResultName": "My Drive",
+          "cachedResultUrl": "https://drive.google.com/drive/my-drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "YOUR_DRIVE_FOLDER_ID",
+          "mode": "list",
+          "cachedResultName": "Resumes",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/YOUR_DRIVE_FOLDER_ID"
+        },
+        "options": {}
+      },
+      "id": "45f5bf07-8944-467f-956b-e4a10da02713",
+      "name": "Upload file",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        448,
+        96
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "REPLACE_CREDENTIAL_ID",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "Resume",
+        "options": {}
+      },
+      "id": "343d88e2-64d6-482f-9af2-d7ef31cf84d4",
+      "name": "Extract info from Resume",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        448,
+        432
+      ]
+    },
+    {
+      "parameters": {
+        "text": "={{ $json.text }}",
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"telephone\": {\n      \"type\": \"string\",\n      \"description\": \"Phone number of the contact (digits only)\"\n    },\n    \"city\": {\n      \"type\": \"string\",\n      \"description\": \"City of the contact\"\n    },\n    \"full_name\": {\n      \"type\": \"string\",\n      \"description\": \"Full name of the contact\"\n    },\n    \"email\": {\n      \"type\": \"string\",\n      \"format\": \"email\",\n      \"description\": \"Email address of the contact\"\n    },\n    \"linkedin_profile\": {\n      \"type\": \"string\",\n      \"format\": \"url\",\n      \"description\": \"LinkedIn Profile of the contact\"\n    }\n  },\n  \"required\": [\n    \"full_name\",\n    \"email\",\n    \"telephone\",\n    \"city\",\n    \"linkedin_profile\"\n  ]\n}",
+        "options": {
+          "systemPromptTemplate": "=You are an expert extraction algorithm.\nOnly extract relevant information from the text.\nIf you do not know the value of an attribute asked to extract, you should set that value for the attribute to NA."
+        }
+      },
+      "id": "40635238-6c30-478a-9748-6febd2e948a5",
+      "name": "Extract Personal Information",
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1.2,
+      "position": [
+        672,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {
+          "frequencyPenalty": 0
+        }
+      },
+      "id": "b4bde8d5-0cb5-480b-b975-10495fce7249",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        752,
+        464
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "n8n credits",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "text": "={{ $json.text }}",
+        "attributes": {
+          "attributes": [
+            {
+              "name": "Educational Qualification",
+              "description": "=Summary of academic career, focusing on undergraduate and university studies. Summarize in 100 words maximum.",
+              "required": true
+            },
+            {
+              "name": "Job History",
+              "description": "=Work history summary, focusing on most recent work experiences. Summarize in 100 words maximum.",
+              "required": true
+            },
+            {
+              "name": "Skills",
+              "description": "=Extract the candidate's technical skills. What software, frameworks, functional skills they are proficient in. Make a bulleted list.",
+              "required": true
+            },
+            {
+              "name": "Experience",
+              "description": "=Extract years of experience and group experience by job function or role type. Format Example: Total Years Exp: X – Account Executive: 2 years – Sales Development Representative: 2 years – Account Manager: 3 years"
+            },
+            {
+              "name": "Title & Employer",
+              "description": "Extract most recent Job Title and Employer"
+            },
+            {
+              "name": "Total Years Experience",
+              "description": "=Extract total years of experience and format as Total Years Exp:"
+            }
+          ]
+        },
+        "options": {
+          "systemPromptTemplate": "=You are an expert extraction algorithm.\nOnly extract relevant information from the text.\nIf you do not know the value of an attribute asked to extract, you should set that value for the attribute to NA."
+        }
+      },
+      "id": "bd46e784-ef8a-4c45-82f6-971ac6107f71",
+      "name": "Professional Information",
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1.2,
+      "position": [
+        672,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "id": "603e71f6-ce7b-4d0f-97d2-9e033a10d1ec",
+      "name": "Unified Candidate Profile",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1024,
+        432
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "summarizationMethodAndPrompts": {
+            "values": {
+              "combineMapPrompt": "=Given the information below for a job applicant, write a concise summary for it. While summarizing, be professional, concise, & conversational. Use 300 words or less.\n\nHere is the detailed information about the applicant:\n\nName:{{ $json.output.full_name }}\nCity: {{ $json.output.city }}\nEducational qualification: {{ $json.output[\"Educational Qualification\"] }}\nJob History: {{ $json.output[\"Job History\"] }}\nSkills: {{ $json.output.Skills }}\nPrevious experience:{{ $json.output['Job History'] }}\nApplied date:{{$now.format('yyyy-MM-dd')}}",
+              "prompt": "=Given the information below for a job applicant, write a concise summary for it. While summarizing, be professional, concise, & conversational. Use 400 words or less.\n\nHere is the detailed information about the applicant:\n\nName:{{ $json.output.full_name }}\nCity: {{ $json.output.city }}\nEducational qualification: {{ $json.output[\"Educational Qualification\"] }}\nJob History: {{ $json.output[\"Job History\"] }}\nSkills: {{ $json.output.Skills }}\nPrevious experience:{{ $json.output['Job History'] }}\nApplied date:{{$now.format('yyyy-MM-dd')}}"
+            }
+          }
+        }
+      },
+      "id": "fa3c3aee-4bba-4a88-afae-b7b321c1501a",
+      "name": "Summarize the profile",
+      "type": "@n8n/n8n-nodes-langchain.chainSummarization",
+      "typeVersion": 2.1,
+      "position": [
+        1248,
+        432
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Capture Job Code').item.json.job_code }}",
+                    "rightValue": "job-code-001",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "8a38fe1c-42bd-4375-a52b-2143d3852af6"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "AI Automation Engineer"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "d226618a-90ca-4cba-a8d8-63131c21c273",
+                    "leftValue": "={{ $('Capture Job Code').item.json.job_code }}",
+                    "rightValue": "job-code-002",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Data Analyst"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "3939586a-114d-4b6d-8f00-f6d228046fe6",
+                    "leftValue": "={{ $('Capture Job Code').item.json.job_code }}",
+                    "rightValue": "job-code-003",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Data Scientist"
+            }
+          ]
+        },
+        "looseTypeValidation": true,
+        "options": {
+          "ignoreCase": true
+        }
+      },
+      "id": "7b2badb4-c060-4f83-af79-a527d64ac2d3",
+      "name": "Switch1",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        1600,
+        416
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Job Posting Details:\n{{ $json.content }}\n\nHere is the candidate profile summary:\n{{ $('Summarize the profile').item.json.output.text }}",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=You are an HR expert and you need to understand if the candidate aligns with the profile sought by the company. You must give a score from 1 to 10, where 1 means the candidate does not align with what is required, while 10 means they are the ideal candidate because they fully reflect the desired profile. Return the score in the 'ai_resume_score' field. Furthermore, in the 'ai_evaluation' field, explain the reasoning behind your score."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "id": "350f787d-020f-4895-8e2c-599234975467",
+      "name": "Evaluate & Score Profile",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        2048,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"ai_resume_score\": {\n      \"type\": \"number\"\n    },\n    \"ai_evaluation\": {\n      \"type\": \"string\"\n    }\n  }\n}"
+      },
+      "id": "5edca16e-e4a0-4d32-aa6c-f47cf7ca3244",
+      "name": "Structured Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        2128,
+        624
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.output.ai_resume_score }}",
+                    "rightValue": 7,
+                    "operator": {
+                      "type": "number",
+                      "operation": "gt"
+                    },
+                    "id": "a14332a3-558b-4dbb-b7f9-d3740b73c781"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Shortlisted"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "497c77d1-8336-40a7-88e4-fda272fb5d68",
+                    "leftValue": "={{ $json.output.ai_resume_score }}",
+                    "rightValue": 5,
+                    "operator": {
+                      "type": "number",
+                      "operation": "gte"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Maybe"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "Ignored"
+        }
+      },
+      "id": "fbd89107-50ce-4209-8d77-860d98f8eee4",
+      "name": "Switch",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        2400,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Job Applicants Tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1790397922,
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=1790397922"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Job Code": "={{ $('Capture Job Code').item.json['hdn-job-code'] }}",
+            "Applicant Name": "={{ $('Extract Personal Information').item.json.output.full_name }}",
+            "Applicant Email": "={{ $('Extract Personal Information').item.json.output.email }}",
+            "Application Date": "={{ $now.format('yyyy-MM-dd hh:mm a') }}",
+            "Final Score": "={{ $json.output.ai_resume_score }}",
+            "AI Status": "={{ $json.ai_status }}",
+            "AI Assessment": "={{ $json.output.ai_evaluation }}",
+            "Total Experience": "={{ $('Professional Information').item.json.output['Total Years Experience'] }}",
+            "Experience Summary": "={{ $('Professional Information').item.json.output.Experience }}",
+            "Job History": "={{ $('Professional Information').item.json.output['Job History'] }}",
+            "Skills": "={{ $('Professional Information').item.json.output.Skills }}",
+            "Applicant Location": "={{ $('Extract Personal Information').item.json.output.city }}",
+            "Applicant Phone": "={{ $('Extract Personal Information').item.json.output.telephone }}",
+            "Applicant Education": "={{ $('Professional Information').item.json.output['Educational Qualification'] }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "Job Code",
+              "id": "Job Code",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "Hiring Manager",
+              "id": "Hiring Manager",
+              "removed": true,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "Hiring Manager Email",
+              "id": "Hiring Manager Email",
+              "removed": true,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "Applicant Name",
+              "id": "Applicant Name",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "Applicant Email",
+              "id": "Applicant Email",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "Application Date",
+              "id": "Application Date",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "Final Score",
+              "id": "Final Score",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "AI Status",
+              "id": "AI Status",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "AI Assessment",
+              "id": "AI Assessment",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "Total Experience",
+              "id": "Total Experience",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "Experience Summary",
+              "id": "Experience Summary",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "Job History",
+              "id": "Job History",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "Skills",
+              "id": "Skills",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "Applicant Location",
+              "id": "Applicant Location",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "Applicant Phone",
+              "id": "Applicant Phone",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "Applicant Education",
+              "id": "Applicant Education",
+              "required": false,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "3207c45d-b69d-49c0-8e54-26c5761d3b70",
+      "name": "Log applicants evaluation",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2848,
+        288
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "REPLACE_CREDENTIAL_ID",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Unified Candidate Profile').item.json.output.email }}",
+        "subject": "=Congrats, your profile is shortlisted for {{ $('Capture Job Code').item.json.job_title }}!",
+        "emailType": "text",
+        "message": "=Hello {{ $('Unified Candidate Profile').item.json.output.full_name.split(\" \")[0] }},\n\nThank you for applying for the {{ $('Capture Job Code').item.json.job_title }} position at Nexora. Your profile has been shortlisted.\n\nPlease share some slots next week so that we can have a short 15 minutes connect.\n\nRegards,\nNexora HR Team",
+        "options": {
+          "appendAttribution": false,
+          "senderName": "Nexora HR"
+        }
+      },
+      "id": "2430d37a-50e0-4e67-ab72-7c5ba247ae44",
+      "name": "Send a message",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2848,
+        480
+      ],
+      "webhookId": "1da690dd-a202-4a21-8e8e-df6f5be3f994",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REPLACE_CREDENTIAL_ID",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0b6a0218-84ad-476d-9a9c-df7d38b66a5e",
+              "name": "ai_status",
+              "value": "Maybe",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "50650ddc-98a3-4eb0-a8df-b960cdefe5bd",
+      "name": "Set Status to Maybe",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        2624,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0b6a0218-84ad-476d-9a9c-df7d38b66a5e",
+              "name": "ai_status",
+              "value": "Shortlisted",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "a29d14a9-caf7-47f4-a563-1ae5fdb8255f",
+      "name": "Set Status to  Shortlisted",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        2624,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0b6a0218-84ad-476d-9a9c-df7d38b66a5e",
+              "name": "ai_status",
+              "value": "Ignored",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "e611a9c1-9247-46f5-9935-d8fd5cb33039",
+      "name": "Set Status to Ignored",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        2624,
+        528
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "documentURL": "YOUR_AI_ENGINEER_JOB_DOC_ID"
+      },
+      "id": "9db91aac-7f23-4ee4-a386-216eb2ef1052",
+      "name": "Get AI Automation Engineer job posting",
+      "type": "n8n-nodes-base.googleDocs",
+      "typeVersion": 2,
+      "position": [
+        1824,
+        240
+      ],
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "REPLACE_CREDENTIAL_ID",
+          "name": "Google Docs account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "documentURL": "YOUR_DATA_ANALYST_JOB_DOC_ID"
+      },
+      "id": "0d28fb0d-6bb5-4f70-a962-9752a64dd134",
+      "name": "Get Data Analyst job posting",
+      "type": "n8n-nodes-base.googleDocs",
+      "typeVersion": 2,
+      "position": [
+        1824,
+        432
+      ],
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "REPLACE_CREDENTIAL_ID",
+          "name": "Google Docs account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "documentURL": "YOUR_DATA_SCIENTIST_JOB_DOC_ID"
+      },
+      "id": "a14898bf-925c-419a-a482-aa25bccdf661",
+      "name": "Get Data Scientist job posting",
+      "type": "n8n-nodes-base.googleDocs",
+      "typeVersion": 2,
+      "position": [
+        1824,
+        624
+      ],
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "REPLACE_CREDENTIAL_ID",
+          "name": "Google Docs account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "formTitle": "Apply for the Job",
+        "formDescription": "Data Analyst at Nexora",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "First Name",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Last Name",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Email",
+              "fieldType": "email",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Resume",
+              "fieldType": "file",
+              "acceptFileTypes": ".pdf",
+              "requiredField": true
+            },
+            {
+              "fieldType": "hiddenField",
+              "fieldName": "hdn-job-code",
+              "fieldValue": "job-code-002"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "07958ca3-0f37-4a68-ac54-06c0cd90e05a",
+      "name": "On form submission - Data Analyst",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        0,
+        192
+      ],
+      "webhookId": "f8e6a74a-c9cd-4966-a70a-0c9ebe718331"
+    },
+    {
+      "parameters": {
+        "formTitle": "Apply for the Job",
+        "formDescription": "AI Automation Engineer at Nexora",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "First Name",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Last Name",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Email",
+              "fieldType": "email",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Resume",
+              "fieldType": "file",
+              "acceptFileTypes": ".pdf",
+              "requiredField": true
+            },
+            {
+              "fieldType": "hiddenField",
+              "fieldName": "hdn-job-code",
+              "fieldValue": "job-code-001"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f001cd08-1743-4642-aa74-4b10bbad39e9",
+      "name": "On form submission - AI Automation Engineer",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "f4a20fc7-acbc-4ff7-afb8-bf11f157fc3e"
+    },
+    {
+      "parameters": {
+        "formTitle": "Apply for the Job",
+        "formDescription": "Data Scientist at Nexora",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "First Name",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Last Name",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Email",
+              "fieldType": "email",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Resume",
+              "fieldType": "file",
+              "acceptFileTypes": ".pdf",
+              "requiredField": true
+            },
+            {
+              "fieldType": "hiddenField",
+              "fieldName": "hdn-job-code",
+              "fieldValue": "job-code-003"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "49e913ec-7c58-40bd-8974-7291b9b012e5",
+      "name": "On form submission -  Data Scientist",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        0,
+        384
+      ],
+      "webhookId": "367f4d3a-0973-49b7-b86b-b4ad4f38020e"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Unified Candidate Profile').item.json.output.email }}",
+        "subject": "=Your application for {{ $('Capture Job Code').item.json.job_title }} at Nexora",
+        "emailType": "text",
+        "message": "=Hello {{ $('Unified Candidate Profile').item.json.output.full_name.split(\" \")[0] }},\n\nThank you for applying for the {{ $('Capture Job Code').item.json.job_title }} position at Nexora. We have received your application and it is currently under review. Our team will get back to you if we would like to move forward.\n\nRegards,\nNexora HR Team",
+        "options": {
+          "appendAttribution": false,
+          "senderName": "Nexora HR"
+        }
+      },
+      "id": "041c1bab-d569-40f0-aa4e-54135f82f0e8",
+      "name": "Send Maybe Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2848,
+        672
+      ],
+      "webhookId": "d8c9a929-696c-4d06-acef-b412a1e65052",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REPLACE_CREDENTIAL_ID",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Unified Candidate Profile').item.json.output.email }}",
+        "subject": "=Update on your application for {{ $('Capture Job Code').item.json.job_title }} at Nexora",
+        "emailType": "text",
+        "message": "=Hello {{ $('Unified Candidate Profile').item.json.output.full_name.split(\" \")[0] }},\n\nThank you for your interest in the {{ $('Capture Job Code').item.json.job_title }} position at Nexora and for taking the time to apply. After careful review, we will not be moving forward with your application at this time. We encourage you to apply for future openings that match your skills.\n\nWe wish you the best in your job search.\n\nRegards,\nNexora HR Team",
+        "options": {
+          "appendAttribution": false,
+          "senderName": "Nexora HR"
+        }
+      },
+      "id": "b0ff26c6-7403-4813-a23e-227a1ca620a4",
+      "name": "Send Ignored Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2848,
+        864
+      ],
+      "webhookId": "6816ba67-f242-4ae6-b0ed-132acabd366e",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REPLACE_CREDENTIAL_ID",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Capture Job Code": {
+      "main": [
+        [
+          {
+            "node": "Upload file",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Extract info from Resume",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract info from Resume": {
+      "main": [
+        [
+          {
+            "node": "Extract Personal Information",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Professional Information",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Personal Information": {
+      "main": [
+        [
+          {
+            "node": "Unified Candidate Profile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Extract Personal Information",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Professional Information",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Summarize the profile",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Evaluate & Score Profile",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Professional Information": {
+      "main": [
+        [
+          {
+            "node": "Unified Candidate Profile",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Unified Candidate Profile": {
+      "main": [
+        [
+          {
+            "node": "Summarize the profile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarize the profile": {
+      "main": [
+        [
+          {
+            "node": "Switch1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch1": {
+      "main": [
+        [
+          {
+            "node": "Get AI Automation Engineer job posting",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Data Analyst job posting",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Data Scientist job posting",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evaluate & Score Profile": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Evaluate & Score Profile",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Set Status to  Shortlisted",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set Status to Maybe",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set Status to Ignored",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Status to Maybe": {
+      "main": [
+        [
+          {
+            "node": "Log applicants evaluation",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Maybe Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Status to  Shortlisted": {
+      "main": [
+        [
+          {
+            "node": "Log applicants evaluation",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Status to Ignored": {
+      "main": [
+        [
+          {
+            "node": "Log applicants evaluation",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Ignored Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get AI Automation Engineer job posting": {
+      "main": [
+        [
+          {
+            "node": "Evaluate & Score Profile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Data Analyst job posting": {
+      "main": [
+        [
+          {
+            "node": "Evaluate & Score Profile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Data Scientist job posting": {
+      "main": [
+        [
+          {
+            "node": "Evaluate & Score Profile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "On form submission - Data Analyst": {
+      "main": [
+        [
+          {
+            "node": "Capture Job Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "On form submission - AI Automation Engineer": {
+      "main": [
+        [
+          {
+            "node": "Capture Job Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "On form submission -  Data Scientist": {
+      "main": [
+        [
+          {
+            "node": "Capture Job Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  },
+  "versionId": "7927976a-6702-4498-9fd5-edb456a30f61",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "aiBuilderAssisted": true,
+    "builderVariant": "mcp"
+  },
+  "nodeGroups": [],
+  "tags": []
+}

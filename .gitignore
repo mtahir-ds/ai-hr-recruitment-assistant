@@ -1,0 +1,28 @@
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Environment and secrets
+.env
+.env.*
+*.key
+*.pem
+credentials.json
+token.json
+
+# Logs
+*.log
+
+# Editor folders
+.vscode/
+.idea/
+
+# Real candidate data (never commit)
+resumes/
+*.csv
+*.xlsx
+
+# Temporary files
+*.tmp
+*.bak
