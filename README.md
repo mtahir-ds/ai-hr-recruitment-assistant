@@ -86,7 +86,7 @@ Candidates receive a status-specific email: shortlisted, under review, or not se
 
 ![Other emails](docs/screenshots/06-email-maybe.png)
 
-![Other emails](docs/screenshots/06-email-rejected.png)
+![Other emails](docs/screenshots/07-email-rejected.png)
 
 ### 5. Successful Execution
 ![Execution](docs/screenshots/08-execution-success.png)
